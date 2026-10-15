@@ -29,6 +29,7 @@ CREATE TABLE sensor (
     id INT PRIMARY KEY AUTO_INCREMENT,
     activo BOOLEAN NOT NULL DEFAULT FALSE,
     roto BOOLEAN DEFAULT FALSE,
+    region ENUM('Norte', 'Sur', 'Este', 'Oeste') NOT NULL,
     version DECIMAL(10, 2) NOT NULL,
     ultimo_repuesto DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -41,13 +42,22 @@ CREATE TABLE sensor_logs (
     FOREIGN KEY (sensor_id) REFERENCES sensor(id)
 );
 
-INSERT INTO sensor (activo, version) VALUES
-(TRUE, 1.11),
-(TRUE, 1.11),
-(TRUE, 1.11),
-(TRUE, 1.11),
-(TRUE, 1.12),
-(TRUE, 1.12);
+CREATE TABLE monthly_region_stats (
+    region ENUM('Norte', 'Sur', 'Este', 'Oeste') PRIMARY KEY,
+    promedio DECIMAL(10, 2) NOT NULL,
+    minimo DECIMAL(10, 2) NOT NULL,
+    maximo DECIMAL(10, 2) NOT NULL,
+    cantidad_lecturas BIGINT NOT NULL,
+    ultima_actualizacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO sensor (activo, region, version) VALUES
+(TRUE, 'Norte', 1.11),
+(TRUE, 'Sur', 1.11),
+(TRUE, 'Este', 1.11),
+(TRUE, 'Oeste', 1.11),
+(TRUE, 'Norte', 1.12),
+(TRUE, 'Sur',1.12);
 
 INSERT INTO usuario VALUES
 ('operador@example.com', 'Operador', 'Operadorson', 'operador');

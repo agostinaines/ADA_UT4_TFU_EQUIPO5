@@ -6,6 +6,8 @@ from configdb import credentials
 from sensors.sensors import sensors
 from flask_jwt_extended import JWTManager
 from sensor_logs.sensor_logs import sensor_logs
+from monitoring.monitoring import monitoring
+from monthly_region_stats.monthly_region_stats import monthly_region_stats
 from authentication.authentication import authentication
 from simulation.simulation_service import start_background_tasks
 
@@ -23,6 +25,8 @@ jwt = JWTManager(app)
 app.register_blueprint(sensors)
 app.register_blueprint(sensor_logs)
 app.register_blueprint(authentication)
+app.register_blueprint(monitoring)
+app.register_blueprint(monthly_region_stats)
 
 @app.route('/')
 def welcome():
