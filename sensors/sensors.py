@@ -22,6 +22,30 @@ def get_all_sensors_endpoint():
             'description': 'Internal server error'
         }), 500
 
+@sensors.route('/sensorStatus')
+@roles_required('valet')
+def get_sensor_status_endpoint():
+    try:
+        sensors = sensor_repository.get_all()
+        sensors_status = [
+            {
+                'id': sensor['id'],
+                'estado': 'roto' if sensor['roto'] else 'bien'
+            }
+            for sensor in sensors
+        ]
+
+        return jsonify({
+            'success': True,
+            'sensors': sensors_status
+        }), 200
+
+    except Exception:
+        return jsonify({
+            'success': False,
+            'description': 'Internal server error'
+        }), 500
+
 @sensors.route('/newSensor', methods=['POST'])
 @roles_required("operador")
 def new_sensor_endpoint():

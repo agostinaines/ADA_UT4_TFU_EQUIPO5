@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 import authentication.authentication_repository as authentication_repository
 from flask_jwt_extended import create_access_token
+from authentication.decorators import roles_required
 import bcrypt
 from datetime import datetime, timedelta, timezone
 import os
@@ -150,6 +151,30 @@ def login_endpoint():
         }), 200
     
     except Exception as ex:
+        return jsonify({
+            'success': False,
+            'description': 'Internal server error'
+        }), 500
+
+@authentication.route('/valetKey', methods=['POST'])
+@roles_required('operador')
+def generate_valet_key_endpoint():
+    try:
+        valet_token = create_access_token(
+            identity='valet',
+            additional_claims={
+                'rol': 'valet'
+            },
+            expires_delta=timedelta(minutes=30)
+        )
+
+        return jsonify({
+            'success': True,
+            'access_token': valet_token,
+            'rol': 'valet'
+        }), 200
+
+    except Exception:
         return jsonify({
             'success': False,
             'description': 'Internal server error'
