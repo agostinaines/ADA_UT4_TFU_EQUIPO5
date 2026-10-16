@@ -30,7 +30,7 @@ def get_sensor_status_endpoint():
         sensors_status = [
             {
                 'id': sensor['id'],
-                'estado': 'roto' if sensor['roto'] else 'bien'
+                'estado': 'roto' if sensor['roto'] else 'saludable'
             }
             for sensor in sensors
         ]
