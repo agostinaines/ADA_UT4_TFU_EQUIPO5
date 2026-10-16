@@ -142,9 +142,9 @@ def get_fixed(sensor_id):
         fixed = sensor['roto']
 
         if fixed:
-            description = 'Su solicitud se sigue procesando.'
+            description = 'Su solicitud se sigue procesando'
         else:
-            description = f'El sensor {sensor_id} fue reparado con éxito.'
+            description = f'El sensor {sensor_id} fue reparado con éxito'
         
         return description
     except:
