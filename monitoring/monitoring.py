@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify
 from datetime import datetime, timezone
 from time import perf_counter
+from authentication.decorators import roles_required
 
 import monitoring.monitoring_repository as monitoring_repository
 
@@ -9,6 +10,7 @@ monitoring = Blueprint("monitoring", __name__)
 
 
 @monitoring.route("/monitoring")
+@roles_required('operador')
 def health_endpoint():
     start_time = perf_counter()
 

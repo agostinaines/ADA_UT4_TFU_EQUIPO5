@@ -1,4 +1,5 @@
 from configdb import get_connection
+import time as tmodule
 
 def create(version):
     '''
@@ -95,8 +96,10 @@ def mark_as_broken(sensor_id):
 
 def mark_as_fixed(sensor_id):
     '''
-    Permite arreglar un sensor.
+    Permite arreglar un sensor, simula el tiempo que lleva repararlo.
     '''
+    tmodule.sleep(30)
+
     connection = get_connection()
 
     try:
@@ -117,6 +120,37 @@ def mark_as_fixed(sensor_id):
         connection.rollback()
         raise
 
+    finally:
+        connection.close()
+
+def get_fixed(sensor_id):
+    connection = get_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT roto
+                FROM sensor
+                WHERE id = %s
+                """,
+                    (sensor_id,)
+            )
+    
+        sensor = cursor.fetchone()
+
+        fixed = sensor['roto']
+
+        if fixed:
+            description = 'Su solicitud se sigue procesando.'
+        else:
+            description = f'El sensor {sensor_id} fue reparado con éxito.'
+        
+        return description
+    except:
+        connection.rollback()
+        raise
+    
     finally:
         connection.close()
 

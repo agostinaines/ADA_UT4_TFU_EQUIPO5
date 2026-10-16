@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from authentication.decorators import roles_required
 from . import sensor_repository
-import time as tmodule
+from threading import Thread
 
 sensors = Blueprint("sensors", __name__)
 
@@ -53,17 +53,33 @@ def new_sensor_endpoint():
 @roles_required("operador")
 def repair_sensor_endpoint(id):
     try:
-        tmodule.sleep(30)
-        sensor_repository.mark_as_fixed(id)
+        Thread(target=sensor_repository.mark_as_fixed, args=(id,)).start()
 
         return jsonify({
             'success': True,
-            'description': f'Sensor {id} reparado con éxito'
+            'description': f'Ticket para reparar sensor {id} enviado con éxito'
         }), 200
     
     except Exception as ex:
         return jsonify({
             'success': True,
+            'description': 'Error'
+        }), 500
+
+@sensors.route('/ticket/<id>')
+@roles_required('operador')
+def check_ticket_status(id):
+    try:
+        description = sensor_repository.get_fixed(id)
+
+        return jsonify({
+            'success': True,
+            'description': description
+        }), 200
+    
+    except Exception as ex:
+        return jsonify({
+            'success': False,
             'description': 'Error'
         }), 500
 
