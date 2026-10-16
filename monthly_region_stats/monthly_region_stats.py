@@ -8,7 +8,7 @@ monthly_region_stats = Blueprint("monthly_region_stats", __name__)
 @roles_required("operador")
 def get_monthly_stats():
     try:
-        stats = monthly_region_stats_repository.getMonthlyStats()
+        stats = monthly_region_stats_repository.get_monthly_stats()
 
         return jsonify({
             'success': True,
@@ -25,7 +25,7 @@ def get_monthly_stats():
 @roles_required("operador")
 def insert_monthly_stats():
     try:
-        monthly_region_stats_repository.postMonthlyStats()
+        monthly_region_stats_repository.post_monthly_stats()
 
         return jsonify({
             'success': True,

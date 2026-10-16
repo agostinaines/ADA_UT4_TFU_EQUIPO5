@@ -22,8 +22,11 @@ def sensor_readings():
 
             if reading >= 0.99:
                 sensor_repository.mark_as_broken(sensor)
+                print(' ')
                 print(f"SENSOR {sensor} DAÑADO")
+                print(' ')
 
+        print(' ')
         time.sleep(10)
 
 def start_background_tasks():

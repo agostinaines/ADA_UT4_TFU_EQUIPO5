@@ -116,6 +116,10 @@ def mark_as_fixed(sensor_id):
 
         connection.commit()
 
+        print(' ')
+        print(f"SENSOR {sensor_id} REPARADO")
+        print(' ')
+
     except:
         connection.rollback()
         raise

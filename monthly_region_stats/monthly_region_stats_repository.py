@@ -1,6 +1,6 @@
 from configdb import get_connection
 
-def getMonthlyStats():
+def get_monthly_stats():
     """
     Consigue todas las estadísticas mensuales de la base de datos.
     """
@@ -26,7 +26,7 @@ def getMonthlyStats():
     finally:
         connection.close()
 
-def postMonthlyStats():
+def post_monthly_stats():
     """
     Inserta las estadísticas mensuales en la base de datos.
     """
