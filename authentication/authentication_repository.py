@@ -1,6 +1,6 @@
 from configdb import get_connection
 
-def register_citizen(mail, name, last_name, password):
+def register_citizen(mail, name, last_name):
     """
     Registra un ciudadano.
     """
@@ -13,13 +13,6 @@ def register_citizen(mail, name, last_name, password):
                 VALUES (%s, %s, %s)
                 """, 
                 (mail, name, last_name,)
-            )
-
-            cursor.execute("""
-                INSERT INTO login (mail, contrasenia) 
-                VALUES (%s, %s)
-                """, 
-                (mail, password.decode('utf-8'),)
             )
 
             connection.commit()
