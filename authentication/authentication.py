@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 import authentication.authentication_repository as authentication_repository
+import authentication.federated_identity as federated_identity
 from flask_jwt_extended import create_access_token
 from authentication.decorators import roles_required
-import bcrypt
 from datetime import datetime, timedelta, timezone
 import os
 
@@ -62,17 +62,19 @@ def register_endpoint():
                 'description': 'El correo electrónico ya está en uso.'
             }), 409
 
-        hash_pwd = bcrypt.hashpw(
-            contrasenia.encode('utf-8'),
-            bcrypt.gensalt()
-        )
-            
-        authentication_repository.register_citizen(mail, nombre, apellido, hash_pwd)
+        federated_identity.register_user(mail, contrasenia)
+        authentication_repository.register_citizen(mail, nombre, apellido)
         
         return jsonify({
             'success': True,
             'description': 'Usuario registrado correctamente.'
         }), 201
+
+    except federated_identity.FederatedAuthError as ex:
+        return jsonify({
+            'success': False,
+            'description': ex.description,
+        }), ex.status_code
     
     except Exception as ex:
         return jsonify({
@@ -93,34 +95,7 @@ def login_endpoint():
                 'description': 'Faltan email o contraseña'
             }), 400
 
-        already_exists = authentication_repository.get_mail(mail)
-
-        if not already_exists:
-            return jsonify({
-                    "success": False,
-                    "description": "Usuario no encontrado"
-                }), 404
-
-        password_exists = authentication_repository.get_password(mail)
-
-        if password_exists is None:
-            return jsonify({
-                'success': False, 
-                'description': 'Credenciales inválidas'
-            }), 401
-
-        stored_password = password_exists['contrasenia']
-        stored_password.encode('utf-8')
-        if isinstance(stored_password, str):
-            stored_password = stored_password.encode('utf-8')
-        input_password_bytes = contrasenia.encode('utf-8')
-        result = bcrypt.checkpw(input_password_bytes, stored_password)
-
-        if not result:
-            return jsonify({
-                'success': False, 
-                'description': 'Credenciales inválidas'
-            }), 401
+        federated_identity.authenticate_user(mail, contrasenia)
 
         rol = authentication_repository.get_role(mail)
 
@@ -149,6 +124,12 @@ def login_endpoint():
             'access_token': access_token,
             'rol': rol
         }), 200
+
+    except federated_identity.FederatedAuthError as ex:
+        return jsonify({
+            'success': False,
+            'description': ex.description
+        }), ex.status_code
     
     except Exception as ex:
         return jsonify({
