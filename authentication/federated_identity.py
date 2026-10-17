@@ -3,8 +3,6 @@ import os
 from urllib import error, request
 
 
-FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_WEB_API_KEY", "")
-AUTH_SERVICE_TIMEOUT = float(os.getenv("AUTH_SERVICE_TIMEOUT", "5"))
 FIREBASE_AUTH_BASE_URL = "https://identitytoolkit.googleapis.com/v1"
 
 FIREBASE_ERROR_MESSAGES = {
@@ -27,8 +25,21 @@ class FederatedAuthError(Exception):
         self.status_code = status_code
 
 
+def _get_firebase_api_key():
+    return os.getenv("FIREBASE_WEB_API_KEY", "").strip()
+
+
+def _get_auth_service_timeout():
+    timeout = os.getenv("AUTH_SERVICE_TIMEOUT", "5").strip()
+
+    try:
+        return float(timeout)
+    except ValueError:
+        return 5.0
+
+
 def _require_provider_config():
-    if not FIREBASE_WEB_API_KEY:
+    if not _get_firebase_api_key():
         raise FederatedAuthError(
             "Proveedor de autenticacion externa no configurado",
             500
@@ -37,7 +48,7 @@ def _require_provider_config():
 
 def _build_url(path):
     _require_provider_config()
-    return f"{FIREBASE_AUTH_BASE_URL}{path}?key={FIREBASE_WEB_API_KEY}"
+    return f"{FIREBASE_AUTH_BASE_URL}{path}?key={_get_firebase_api_key()}"
 
 
 def _map_firebase_error(raw_body):
@@ -73,7 +84,7 @@ def _post_json(path, payload):
     )
 
     try:
-        with request.urlopen(req, timeout=AUTH_SERVICE_TIMEOUT) as response:
+        with request.urlopen(req, timeout=_get_auth_service_timeout()) as response:
             raw_body = response.read().decode("utf-8")
             if not raw_body:
                 return {}
