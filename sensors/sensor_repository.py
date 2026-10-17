@@ -1,7 +1,7 @@
 from configdb import get_connection
 import time as tmodule
 
-def create(version):
+def create(version, region):
     '''
     Permite crear un nuevo sensor.
     '''
@@ -11,10 +11,10 @@ def create(version):
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO sensor (version)
-                VALUES (%s)
+                INSERT INTO sensor (version, region)
+                VALUES (%s, %s)
                 """,
-                (version,)
+                (version, region)
             )
 
         connection.commit()

@@ -53,6 +53,7 @@ def new_sensor_endpoint():
         body = request.get_json()
 
         version = body.get('version')
+        region = body.get('region')
 
         if not version:
             return jsonify({
@@ -60,7 +61,19 @@ def new_sensor_endpoint():
                 'description': 'Faltan datos obligatorios'
             }), 400
 
-        sensor_repository.create(version)
+        if not region:
+            return jsonify({
+                'success': False,
+                'description': 'Faltan datos obligatorios'
+            }), 400
+
+        if region not in ['Norte', 'Sur', 'Este', 'Oeste']:
+            return jsonify({
+                'success': False,
+                'description': 'Región inválida'
+            }), 400
+
+        sensor_repository.create(version, region)
 
         return jsonify({
             'success': True,
