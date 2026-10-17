@@ -1,0 +1,15 @@
+
+{
+  "name": "tfu-messaging-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Puente entre RabbitMQ y Redis Streams",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.8",
+    "redis": "^4.7.0"
+  }
+}

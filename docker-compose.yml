@@ -42,7 +42,59 @@ services:
       LC_ALL: C.UTF-8
       PYTHONIOENCODING: utf-8
       PYTHONUNBUFFERED: "1"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: bridgeuser
+      RABBITMQ_PASSWORD: bridgepassword
     volumes:
       - .:/app
     working_dir: /app
     command: python main.py
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: tfu_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: bridgeuser
+      RABBITMQ_DEFAULT_PASS: bridgepassword
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    container_name: tfu_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  messaging-bridge:
+    build:
+      context: ./messaging_bridge
+    container_name: tfu_messaging_bridge
+    restart: unless-stopped
+    environment:
+      RABBITMQ_URL: amqp://bridgeuser:bridgepassword@rabbitmq:5672
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  alert-service:
+    build:
+      context: ./alert_service
+    container_name: tfu_alert_service
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
