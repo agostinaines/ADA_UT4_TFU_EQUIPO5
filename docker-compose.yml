@@ -1,3 +1,9 @@
+x-python-health: &python-health
+  interval: 10s
+  timeout: 5s
+  retries: 10
+  start_period: 15s
+
 services:
   db:
     image: mysql:8.0
@@ -5,54 +11,21 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: tfu3
-      MYSQL_USER: ada2
-      MYSQL_PASSWORD: reallyStrongPassword123!
     ports:
       - "3307:3306"
     volumes:
       - ./mysql_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot" ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 20s
-  backend:
-    build:
-      context: .
-      dockerfile: dockerfile
-    container_name: flask_backend
-    restart: always
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "5000:5000"
-    environment:
-      MYSQL_HOST: db
-      MYSQL_DB: tfu3
-      MYSQL_USER: ada2
-      MYSQL_PASSWORD: reallyStrongPassword123!
-      SECRET_KEY: ${SECRET_KEY}
-      FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY}
-      AUTH_SERVICE_TIMEOUT: ${AUTH_SERVICE_TIMEOUT:-5}
-      FLASK_ENV: development
-      LANG: C.UTF-8
-      LC_ALL: C.UTF-8
-      PYTHONIOENCODING: utf-8
-      PYTHONUNBUFFERED: "1"
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: bridgeuser
-      RABBITMQ_PASSWORD: bridgepassword
-    volumes:
-      - .:/app
-    working_dir: /app
-    command: python main.py
+
   rabbitmq:
     image: rabbitmq:4-management
     container_name: tfu_rabbitmq
@@ -68,6 +41,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
   redis:
     image: redis:7-alpine
     container_name: tfu_redis
@@ -79,6 +53,150 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth_service/Dockerfile
+    container_name: tfu_auth_service
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_NAME: auth_db
+      DB_USER: auth_svc
+      DB_PASSWORD: authSvcPassword123!
+      SECRET_KEY: ${SECRET_KEY}
+      FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY}
+      AUTH_SERVICE_TIMEOUT: ${AUTH_SERVICE_TIMEOUT:-5}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health', timeout=3)"]
+
+  sensor-service:
+    build:
+      context: .
+      dockerfile: sensor_service/Dockerfile
+    container_name: tfu_sensor_service
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_NAME: sensor_db
+      DB_USER: sensor_svc
+      DB_PASSWORD: sensorSvcPassword123!
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: bridgeuser
+      RABBITMQ_PASSWORD: bridgepassword
+      SOAP_PUBLIC_URL: http://localhost:5000/soap/sensors
+      REPAIR_SECONDS: ${REPAIR_SECONDS:-30}
+      READING_INTERVAL_SECONDS: ${READING_INTERVAL_SECONDS:-10}
+      DAMAGE_THRESHOLD: ${DAMAGE_THRESHOLD:-0.99}
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5002/health', timeout=3)"]
+
+  statistics-service:
+    build:
+      context: .
+      dockerfile: statistics_service/Dockerfile
+    container_name: tfu_statistics_service
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_NAME: statistics_db
+      DB_USER: stats_svc
+      DB_PASSWORD: statsSvcPassword123!
+      SENSOR_SERVICE_URL: http://sensor-service:5002
+      UPSTREAM_CONNECT_TIMEOUT: ${UPSTREAM_CONNECT_TIMEOUT:-1}
+      UPSTREAM_READ_TIMEOUT: ${UPSTREAM_READ_TIMEOUT:-5}
+      UPSTREAM_RETRIES: ${UPSTREAM_RETRIES:-2}
+      CB_FAILURE_THRESHOLD: ${CB_FAILURE_THRESHOLD:-3}
+      CB_RECOVERY_TIMEOUT: ${CB_RECOVERY_TIMEOUT:-15}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5003/health', timeout=3)"]
+
+  monitoring-service:
+    build:
+      context: .
+      dockerfile: monitoring_service/Dockerfile
+    container_name: tfu_monitoring_service
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:5001
+      SENSOR_SERVICE_URL: http://sensor-service:5002
+      STATISTICS_SERVICE_URL: http://statistics-service:5003
+      ALERT_SERVICE_URL: http://alert-service:5005
+      CB_FAILURE_THRESHOLD: ${CB_FAILURE_THRESHOLD:-3}
+      CB_RECOVERY_TIMEOUT: ${CB_RECOVERY_TIMEOUT:-15}
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5004/health', timeout=3)"]
+
+  alert-service:
+    build:
+      context: ./alert_service
+    container_name: tfu_alert_service
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379
+      SENSOR_SERVICE_URL: http://sensor-service:5002
+      PORT: "5005"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: tfu_gateway
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      AUTH_SERVICE_URL: http://auth-service:5001
+      SENSOR_SERVICE_URL: http://sensor-service:5002
+      STATISTICS_SERVICE_URL: http://statistics-service:5003
+      MONITORING_SERVICE_URL: http://monitoring-service:5004
+      ALERT_SERVICE_URL: http://alert-service:5005
+      UPSTREAM_CONNECT_TIMEOUT: ${UPSTREAM_CONNECT_TIMEOUT:-1}
+      UPSTREAM_READ_TIMEOUT: ${UPSTREAM_READ_TIMEOUT:-5}
+      UPSTREAM_RETRIES: ${UPSTREAM_RETRIES:-2}
+      CB_FAILURE_THRESHOLD: ${CB_FAILURE_THRESHOLD:-3}
+      CB_RECOVERY_TIMEOUT: ${CB_RECOVERY_TIMEOUT:-15}
+    healthcheck:
+      <<: *python-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health', timeout=3)"]
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      sensor-service:
+        condition: service_healthy
+      statistics-service:
+        condition: service_healthy
+      monitoring-service:
+        condition: service_healthy
+      alert-service:
+        condition: service_healthy
+
   messaging-bridge:
     build:
       context: ./messaging_bridge
@@ -90,15 +208,5 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-  alert-service:
-    build:
-      context: ./alert_service
-    container_name: tfu_alert_service
-    restart: unless-stopped
-    environment:
-      REDIS_URL: redis://redis:6379
-    depends_on:
       redis:
         condition: service_healthy

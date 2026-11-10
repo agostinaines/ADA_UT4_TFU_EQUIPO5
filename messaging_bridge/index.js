@@ -71,6 +71,13 @@ async function main() {
   connection.on("error", (error) => {
     console.error("Error de RabbitMQ:", error.message);
   });
+
+  // Si se pierde la conexión con RabbitMQ el proceso termina y Docker (restart: unless-stopped)
+  // lo levanta de nuevo; así el puente nunca queda "vivo" pero sin consumir.
+  connection.on("close", () => {
+    console.error("Conexión con RabbitMQ cerrada; se reinicia el Messaging Bridge");
+    process.exit(1);
+  });
 }
 
 main().catch((error) => {

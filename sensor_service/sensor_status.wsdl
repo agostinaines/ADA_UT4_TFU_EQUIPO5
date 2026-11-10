@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="SensorStatusService"
+    targetNamespace="http://tfu.ucu.edu.uy/sensors"
+    xmlns:tns="http://tfu.ucu.edu.uy/sensors"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://tfu.ucu.edu.uy/sensors" elementFormDefault="qualified">
+
+      <xsd:simpleType name="EstadoSensor">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="saludable"/>
+          <xsd:enumeration value="roto"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:element name="GetSensorStatusRequest">
+        <xsd:complexType><xsd:sequence/></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetSensorStatusResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sensor" minOccurs="0" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="id" type="xsd:int"/>
+                  <xsd:element name="estado" type="tns:EstadoSensor"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <wsdl:message name="GetSensorStatusInput">
+    <wsdl:part name="parameters" element="tns:GetSensorStatusRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetSensorStatusOutput">
+    <wsdl:part name="parameters" element="tns:GetSensorStatusResponse"/>
+  </wsdl:message>
+
+  <wsdl:portType name="SensorStatusPortType">
+    <wsdl:operation name="GetSensorStatus">
+      <wsdl:input message="tns:GetSensorStatusInput"/>
+      <wsdl:output message="tns:GetSensorStatusOutput"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="SensorStatusSoapBinding" type="tns:SensorStatusPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetSensorStatus">
+      <soap:operation soapAction="http://tfu.ucu.edu.uy/sensors/GetSensorStatus"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="SensorStatusService">
+    <wsdl:port name="SensorStatusPort" binding="tns:SensorStatusSoapBinding">
+      <soap:address location="{{SOAP_LOCATION}}"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>
