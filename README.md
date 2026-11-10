@@ -1,4 +1,4 @@
-# ADA_UT5_TFU_EQUIPO5 – Sistema de detección de desastres (microservicios)
+# ADA_UT5_TFU_EQUIPO5
 
 Sistema que recibe lecturas de sensores, detecta posibles situaciones de desastre natural y genera alertas.
 Es la evolución del proyecto de la UT4 (monolito Flask) a una arquitectura de **microservicios**, tal como
@@ -64,7 +64,7 @@ Ejemplo mínimo de `.env`:
 
 ```dotenv
 SECRET_KEY="tfu-federated-auth-2026-local-secret-key"
-FIREBASE_WEB_API_KEY="AIzaSyDify6L7xueihHlkpbyQi1UD_W_bRkhBrc"
+FIREBASE_WEB_API_KEY="AIza..." 
 ```
 
 > **Importante:** el `.env` está en el `.gitignore` y **no debe subirse al repositorio**. En `.env.example` dejá solo valores de ejemplo (`AIza...`), nunca la clave real.
